@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TruthLens AI - Fake News Detector</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="animated-bg"></div>
+    
+    <div class="app-container">
+        <header class="app-header">
+            <h1 class="logo">Truth<span class="gradient-text">Lens</span></h1>
+            <p class="subtitle">Next-Generation AI Authentication Engine</p>
+        </header>
+
+        <main class="main-content">
+            <div class="glass-card">
+                <form id="analyze-form">
+                    <div class="input-wrapper">
+                        <textarea id="news-input" placeholder="Paste article text here to verify its authenticity..." required></textarea>
+                    </div>
+                    <div class="action-bar">
+                        <button type="submit" id="submit-btn" class="glow-button">
+                            <span class="btn-text">Analyze Content</span>
+                            <span class="loader hidden"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="results-wrapper" class="glass-card hidden">
+                <div class="result-header">
+                    <h2 class="result-title">Analysis Complete</h2>
+                    <div id="verdict-badge" class="badge"></div>
+                </div>
+                
+                <div class="metrics">
+                    <div class="metric-label">
+                        <span>Confidence Score</span>
+                        <span id="confidence-percentage">0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                    <p class="insight-text" id="insight-text"></p>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>Powered by LinearSVC & TF-IDF • IBM Project 2026</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
