@@ -4,4 +4,4 @@ pandas
 numpy
 joblib
 streamlit
-altair
+altair<5
