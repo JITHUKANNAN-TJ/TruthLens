@@ -1,109 +1,215 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import joblib
 import os
 import math
 
 # Set page config
-st.set_page_config(page_title="Fake News Detector", page_icon="📰", layout="centered")
+st.set_page_config(page_title="TruthLens AI - Fake News Detector", page_icon="🔍", layout="centered")
 
-# Custom CSS for styling
-st.markdown("""
+# Read the original style.css
+css_path = os.path.join(os.path.dirname(__file__), 'static', 'style.css')
+with open(css_path, 'r', encoding='utf-8') as f:
+    original_css = f.read()
+
+# Inject full CSS: original style.css + Streamlit overrides
+st.markdown(f"""
 <style>
-    .main-header {
-        font-size: 2.5rem;
-        color: #1E88E5;
-        text-align: center;
-        margin-bottom: 0px;
-        font-weight: 700;
-    }
-    .sub-header {
-        font-size: 1.2rem;
-        color: #555;
-        text-align: center;
-        margin-bottom: 30px;
-    }
-    .result-real {
-        color: #2E7D32;
-        font-weight: bold;
-        font-size: 1.5rem;
-        padding: 15px;
-        background-color: #E8F5E9;
-        border-radius: 8px;
-        border-left: 5px solid #2E7D32;
-        text-align: center;
-        margin-top: 10px;
-    }
-    .result-fake {
-        color: #C62828;
-        font-weight: bold;
-        font-size: 1.5rem;
-        padding: 15px;
-        background-color: #FFEBEE;
-        border-radius: 8px;
-        border-left: 5px solid #C62828;
-        text-align: center;
-        margin-top: 10px;
-    }
-    .stTextArea textarea {
-        font-size: 1rem !important;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&display=swap');
+
+    {original_css}
+
+    /* === Streamlit Overrides === */
+    .stApp {{
+        background-color: #0f172a !important;
+        font-family: 'Outfit', sans-serif !important;
+    }}
+    header[data-testid="stHeader"] {{ display: none !important; }}
+    #MainMenu {{ display: none !important; }}
+    .block-container {{
+        padding-top: 1rem !important;
+        max-width: 800px !important;
+    }}
+
+    /* Text Area */
+    .stTextArea textarea {{
+        width: 100% !important;
+        min-height: 200px !important;
+        background: rgba(15, 23, 42, 0.6) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 16px !important;
+        padding: 1.5rem !important;
+        color: #f8fafc !important;
+        font-family: 'Outfit', sans-serif !important;
+        font-size: 1.1rem !important;
+        line-height: 1.6 !important;
+    }}
+    .stTextArea textarea:focus {{
+        border-color: rgba(59, 130, 246, 0.5) !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
+    }}
+    .stTextArea textarea::placeholder {{
+        color: rgba(148, 163, 184, 0.5) !important;
+    }}
+    .stTextArea label, .stTextArea div[data-testid="stWidgetLabel"] {{
+        display: none !important;
+    }}
+
+    /* Button */
+    div.stButton > button {{
+        background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 12px !important;
+        padding: 1rem 2rem !important;
+        font-family: 'Outfit', sans-serif !important;
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 10px 20px -10px rgba(59, 130, 246, 0.5) !important;
+        float: right !important;
+    }}
+    div.stButton > button:hover {{
+        transform: translateY(-2px) !important;
+        box-shadow: 0 15px 25px -10px rgba(59, 130, 246, 0.5) !important;
+        background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+    }}
+    div.stButton {{
+        display: flex !important;
+        justify-content: flex-end !important;
+    }}
+
+    /* Warning/Error */
+    .stAlert {{ border-radius: 12px !important; }}
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<p class="main-header">Fake News Detector 🕵️</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Paste an article below to check if it\'s real or fake.</p>', unsafe_allow_html=True)
+# Animated background + Header (rendered as raw HTML component)
+components.html(f"""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&display=swap');
+    {original_css}
+    body {{
+        background: transparent !important;
+        display: flex;
+        justify-content: center;
+        min-height: auto;
+    }}
+    .app-container {{
+        padding: 1rem 0 0 0;
+    }}
+</style>
+<div class="animated-bg"></div>
+<div class="app-container">
+    <header class="app-header">
+        <h1 class="logo">Truth<span class="gradient-text">Lens</span></h1>
+        <p class="subtitle">Next-Generation AI Authentication Engine</p>
+    </header>
+</div>
+""", height=150)
 
-# Load the model and vectorizer at startup
+
+# Load model
 @st.cache_resource
 def load_models():
     model_path = 'fake_news_model.joblib'
     vectorizer_path = 'tfidf_vectorizer.joblib'
-    
     if os.path.exists(model_path) and os.path.exists(vectorizer_path):
-        clf = joblib.load(model_path)
-        vectorizer = joblib.load(vectorizer_path)
-        return clf, vectorizer
-    else:
-        return None, None
+        return joblib.load(model_path), joblib.load(vectorizer_path)
+    return None, None
 
 clf, vectorizer = load_models()
 
 if not clf or not vectorizer:
-    st.error("Error: Model (`fake_news_model.joblib`) or vectorizer (`tfidf_vectorizer.joblib`) not found. Please train the model first.")
+    st.error("Model or vectorizer not found. Please train the model first.")
 else:
-    text_input = st.text_area("Article Text:", height=250, placeholder="Paste the news article text here...")
-    
-    if st.button("Analyze Article", type="primary", use_container_width=True):
+    text_input = st.text_area("", height=200,
+                               placeholder="Paste article text here to verify its authenticity...",
+                               label_visibility="collapsed")
+
+    submit_button = st.button("⚡ Analyze Content")
+
+    if submit_button:
         if not text_input.strip():
             st.warning("Please enter some text to analyze.")
         else:
-            with st.spinner("Analyzing..."):
+            with st.spinner("Analyzing content authenticity..."):
                 try:
-                    # Vectorize the input text
                     text_vectorized = vectorizer.transform([text_input])
                     prediction = clf.predict(text_vectorized)[0]
-                    
-                    # Calculate a pseudo-confidence score using decision_function
+
                     dist = abs(clf.decision_function(text_vectorized)[0])
-                    # Simple sigmoid-like normalization for confidence visualization
                     confidence = 1 / (1 + math.exp(-dist))
-                    confidence_percent = round(confidence * 100, 2)
-                    
-                    st.markdown("---")
-                    st.subheader("Analysis Result")
-                    
-                    # Columns for better layout
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        if prediction == 0:
-                            st.markdown('<p class="result-real">✅ REAL NEWS</p>', unsafe_allow_html=True)
-                        else:
-                            st.markdown('<p class="result-fake">❌ FAKE NEWS</p>', unsafe_allow_html=True)
-                            
-                    with col2:
-                        st.metric(label="Confidence Score", value=f"{confidence_percent}%")
-                        st.progress(confidence)
-                        
+                    confidence_percent = round(confidence * 100, 1)
+                    if confidence_percent < 50:
+                        confidence_percent = 50 + (confidence_percent / 2)
+                    if confidence_percent > 99.9:
+                        confidence_percent = 99.9
+
+                    is_fake = prediction == 1
+
+                    if is_fake:
+                        badge_class = "fake"
+                        badge_text = "Fake News Detected"
+                        bar_color = "linear-gradient(90deg, #ef4444, #b91c1c)"
+                        insight = f"The AI model detected linguistic patterns, tone variations, and structural anomalies highly correlated with fabricated content. Confidence level: {confidence_percent}%."
+                    else:
+                        badge_class = "real"
+                        badge_text = "Verified Authentic"
+                        bar_color = "linear-gradient(90deg, #10b981, #047857)"
+                        insight = f"The analysis indicates this article utilizes credible journalistic structures, consistent tone, and factual framing. Confidence level: {confidence_percent}%."
+
+                    # Render results using components.html for proper HTML rendering
+                    results_html = f"""
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&display=swap');
+                        {original_css}
+                        body {{
+                            background: transparent !important;
+                            display: block;
+                            min-height: auto;
+                        }}
+                        .app-container {{
+                            padding: 0;
+                        }}
+                    </style>
+                    <div class="glass-card" style="animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1);">
+                        <div class="result-header">
+                            <h2 class="result-title">Analysis Complete</h2>
+                            <div class="badge {badge_class}">{badge_text}</div>
+                        </div>
+                        <div class="metrics">
+                            <div class="metric-label">
+                                <span>Confidence Score</span>
+                                <span>{confidence_percent}%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: {confidence_percent}%; background: {bar_color};"></div>
+                            </div>
+                            <p class="insight-text">{insight}</p>
+                        </div>
+                    </div>
+                    """
+                    components.html(results_html, height=280)
+
                 except Exception as e:
                     st.error(f"An error occurred during prediction: {str(e)}")
+
+# Footer
+components.html(f"""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&display=swap');
+    body {{ background: transparent !important; font-family: 'Outfit', sans-serif; }}
+    footer {{
+        text-align: center;
+        color: #94a3b8;
+        font-size: 0.85rem;
+        opacity: 0.7;
+        padding-top: 1rem;
+    }}
+</style>
+<footer>
+    <p>Powered by LinearSVC &amp; TF-IDF • IBM Project 2026</p>
+</footer>
+""", height=60)
