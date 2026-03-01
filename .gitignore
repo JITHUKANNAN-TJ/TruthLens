@@ -160,7 +160,7 @@ cython_debug/
 #.idea/
 
 # AI Models and Vectorizers (Large Binary Files)
-*.joblib
+# *.joblib  # Needed for Streamlit Cloud deployment
 *.pkl
 *.h5
 *.keras
